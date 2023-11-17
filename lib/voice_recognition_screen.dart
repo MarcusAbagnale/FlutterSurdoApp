@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class VoiceRecognitionScreen extends StatefulWidget {
@@ -11,7 +11,7 @@ class VoiceRecognitionScreen extends StatefulWidget {
 
 class _VoiceRecognitionScreenState extends State<VoiceRecognitionScreen> {
   TextEditingController urlController = TextEditingController();
-  late WebViewController webViewController;
+  late InAppWebViewController webViewController;
   String initialUrl = 'https://inova-edu.com/palavravisual/imagem.php?ean=';
   stt.SpeechToText speech = stt.SpeechToText();
 
@@ -65,12 +65,23 @@ class _VoiceRecognitionScreenState extends State<VoiceRecognitionScreen> {
   }
 
   Widget _buildWebView() {
-    return WebView(
-      initialUrl: initialUrl,
-      onWebViewCreated: (WebViewController controller) {
+    return InAppWebView(
+      initialUrlRequest: URLRequest(url: Uri.parse(initialUrl)),
+      onWebViewCreated: (InAppWebViewController controller) {
         webViewController = controller;
       },
-      javascriptMode: JavascriptMode.unrestricted,
+      initialOptions: InAppWebViewGroupOptions(
+        crossPlatform: InAppWebViewOptions(
+          useOnDownloadStart: true,
+          useShouldOverrideUrlLoading: true,
+        ),
+      ),
+      onProgressChanged: (controller, progress) {
+        print("Progress: $progress");
+      },
+      onLoadStop: (controller, url) {
+        print("Finished loading: $url");
+      },
     );
   }
 
@@ -79,7 +90,8 @@ class _VoiceRecognitionScreenState extends State<VoiceRecognitionScreen> {
       initialUrl =
           'https://inova-edu.com/palavravisual/imagem.php?ean=${Uri.encodeQueryComponent(urlController.text)}';
     });
-    webViewController.loadUrl(initialUrl);
+    webViewController.loadUrl(
+        urlRequest: URLRequest(url: Uri.parse(initialUrl)));
   }
 
   void _startListening() async {
@@ -101,7 +113,7 @@ class _VoiceRecognitionScreenState extends State<VoiceRecognitionScreen> {
             );
           } else if (status == stt.SpeechToText.notListeningStatus) {
             setState(() {
-              urlController.text = speech.lastRecognizedWords ?? '';
+              urlController.text = speech.lastRecognizedWords;
               _loadWebView();
             });
 
